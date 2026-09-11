@@ -1,5 +1,13 @@
 import {HttpError,validateVehicle,publicVehicle} from './validation.js';
 const invQ=(env,sql,...args)=>env.DB.prepare(sql).bind(...args),invNow=()=>new Date().toISOString();
+export async function sourcePhoto(url){
+ if(!/^cdn\d+\.telesco\.pe$/.test(new URL(url).hostname))throw new HttpError(400,'Недозволене джерело фото.');
+ for(let attempt=0;attempt<3;attempt++){
+  try{const r=await fetch(url,{signal:AbortSignal.timeout(15000)});if(r.ok)return await r.arrayBuffer();await r.body?.cancel();if([400,404,410].includes(r.status))break;}catch{}
+  if(attempt<2)await new Promise(resolve=>setTimeout(resolve,400*(attempt+1)));
+ }
+ throw new HttpError(502,'Фото в джерелі недоступне після повторних спроб. Уже додані картки збережено.');
+}
 export async function storePhoto(bytes,env){
  if(bytes.byteLength>8388608)throw new HttpError(413,'Фото має бути до 8 МБ.');const b=new Uint8Array(bytes);let mime='';
  if(b[0]===255&&b[1]===216&&b[2]===255)mime='image/jpeg';else if(b.slice(0,8).join(',')==='137,80,78,71,13,10,26,10')mime='image/png';else if(new TextDecoder().decode(b.slice(0,4))==='RIFF'&&new TextDecoder().decode(b.slice(8,12))==='WEBP')mime='image/webp';if(!mime)throw new HttpError(400,'Оберіть JPG, PNG або WebP.');
@@ -25,7 +33,7 @@ export async function sourceInventory(env){const source=typeof SOURCE_CATALOG!==
 export async function importSource(id,env,actor){
  const source=typeof SOURCE_CATALOG!=='undefined'?SOURCE_CATALOG:[],item=source.find(c=>c.sourceId===id);if(!item)throw new HttpError(404,'Оголошення не знайдено в підготовленій добірці.');
  const existing=await invQ(env,"SELECT id FROM vehicles WHERE json_extract(payload,'$.source')=?",item.source).first();if(existing)return {id:existing.id,skipped:true};
- const images=[];try{for(const url of item.sourceImages){const host=new URL(url).hostname;if(!/^cdn\d+\.telesco\.pe$/.test(host))throw new HttpError(400,'Недозволене джерело фото.');const r=await fetch(url,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw new HttpError(502,'Фото в джерелі недоступне. Спробуйте пізніше.');images.push(await storePhoto(await r.arrayBuffer(),env));}
+ const images=[];try{for(const url of item.sourceImages)images.push(await storePhoto(await sourcePhoto(url),env));
  return await createVehicle({...item,images},env,actor,crypto.randomUUID());
  }catch(e){for(const path of images){const used=await invQ(env,"SELECT vehicles.id FROM vehicles,json_each(vehicles.payload,'$.images') AS photo WHERE photo.value=? LIMIT 1",path).first();if(!used){await env.BUCKET.delete(path.slice(7));await invQ(env,'DELETE FROM media WHERE id=?',path.slice(7)).run();}}throw e;}
 }
