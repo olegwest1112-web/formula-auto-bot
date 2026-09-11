@@ -1,15 +1,15 @@
 export class HttpError extends Error {constructor(status,message){super(message);this.status=status;}}
 const str=(value,max,required=false)=>{if(typeof value!=='string')value='';value=value.trim();if((required&&!value)||value.length>max)throw new HttpError(400,'Перевірте довжину обов’язкових полів.');return value;};
-const number=(value,min,max,optional=false)=>{if(optional&&(value===''||value==null))return null;const n=Number(value);if(!Number.isFinite(n)||!Number.isInteger(n)||n<min||n>max)throw new HttpError(400,'Числові поля мають недопустиме значення.');return n;};
+const number=(value,min,max,optional=false)=>{if(optional&&(value===''||value==null))return null;const n=Number(value);if(value===''||value==null||typeof value==='boolean'||!Number.isFinite(n)||!Number.isInteger(n)||n<min||n>max)throw new HttpError(400,'Числові поля мають недопустиме значення.');return n;};
 export function safeImage(value){if(typeof value!=='string')return false;return /^\/media\/[a-f0-9-]{36}$/.test(value)||/^https:\/\/olegwest1112-web\.github\.io\/formula-auto-bot\/assets\/[\w.-]+\.(jpg|png|webp)$/.test(value);}
 export function validateVehicle(data){
  if(!data||typeof data!=='object')throw new HttpError(400,'Некоректний автомобіль.');
- const status=data.status;if(!['stock','road','sold','draft'].includes(status))throw new HttpError(400,'Невідомий статус.');
- const published=data.published===true&&status!=='draft';
+ const status=data.status;if(!['stock','road','reserved','sold','draft'].includes(status))throw new HttpError(400,'Невідомий статус.');
+ const published=data.published===true&&status!=='draft';const complete=published;
  const images=Array.isArray(data.images)?[...new Set(data.images)]:[];if(images.length>24||images.some(p=>!safeImage(p)))throw new HttpError(400,'До 24 фотографій JPG, PNG або WebP.');
  const source=str(data.source,500);if(source&&!/^https:\/\/t\.me\/formula_auto_nv\/\d+$/.test(source))throw new HttpError(400,'Джерело: посилання на оголошення Formula у Telegram.');
  const equipment=Array.isArray(data.equipment)?data.equipment.map(v=>str(v,140,true)):[];if(equipment.length>50)throw new HttpError(400,'Максимум 50 опцій.');
- const payload={name:str(data.name,90,true),brand:str(data.brand,40,true),trim:str(data.trim,100),year:number(data.year,1950,new Date().getUTCFullYear()+1),price:number(data.price,1,2000000),mileageValue:number(data.mileageValue,0,3000000),mileageUnit:data.mileageUnit==='mi'?'mi':'km',engine:str(data.engine,80,true),fuel:str(data.fuel,30,true),gear:str(data.gear,30,true),drive:str(data.drive,30),body:str(data.body,30),vin:str(data.vin,17),description:str(data.description,10000),priceNote:str(data.priceNote,160),source,images,equipment,status,published};
+ const payload={name:str(data.name,90,true),brand:str(data.brand,40,complete),trim:str(data.trim,100),year:number(data.year,1950,new Date().getUTCFullYear()+1,!complete),price:number(data.price,1,2000000,!complete),mileageValue:number(data.mileageValue,0,3000000,!complete),mileageUnit:data.mileageUnit==='mi'?'mi':'km',engine:str(data.engine,80,complete),fuel:str(data.fuel,30,complete),gear:str(data.gear,30,complete),drive:str(data.drive,30),body:str(data.body,30),vin:str(data.vin,17).toUpperCase(),description:str(data.description,10000),priceNote:str(data.priceNote,160),source,images,equipment,status,published};
  if(payload.vin&&!/^[A-HJ-NPR-Z0-9]{17}$/i.test(payload.vin))throw new HttpError(400,'VIN має містити 17 латинських літер та цифр без I, O, Q.');
  if(published&&!images.length)throw new HttpError(400,'Перед публікацією додайте хоча б одне фото.');
  return {...payload,internalNote:str(data.internalNote,2000),version:data.version};

@@ -1,12 +1,10 @@
 import fs from 'node:fs';
-import {cars} from '../dist/cars.js';
-const seed=cars.map(c=>({...c,brand:c.id===1?'Land Rover':c.name.split(' ')[0],mileageValue:parseInt(c.mileage)*1000,mileageUnit:c.mileage.includes('миль')?'mi':'km',fuel:c.engine.includes('Дизель')?'Дизель':'Бензин',published:true,vin:c.id===1?'SALYB2EN9KA783239':'',equipment:c.description.split('\n').filter(l=>/^[▫•]/.test(l)&&!l.includes('…')).map(l=>l.replace(/^[▫•️\s]+/,'')),images:c.images.map(p=>'https://olegwest1112-web.github.io/formula-auto-bot/'+p)}));
 fs.mkdirSync('build/server',{recursive:true});fs.mkdirSync('build/.openai',{recursive:true});
 const files={'/admin':['admin/index.html','text/html; charset=utf-8'],'/admin/app.js':['admin/app.js','text/javascript; charset=utf-8'],'/admin/style.css':['admin/style.css','text/css; charset=utf-8']};
 const assets=Object.fromEntries(Object.entries(files).map(([url,[path,mime]])=>[url,{body:fs.readFileSync(path,'utf8'),mime}]));
-let validation=fs.readFileSync('backend/validation.js','utf8').replaceAll('export ','');
-const worker=fs.readFileSync('backend/worker.js','utf8').replace(/^import .*from '\.\/validation.js';\r?\n/m,'');
-fs.writeFileSync('build/server/index.js',`const ADMIN_ASSETS=${JSON.stringify(assets)};\nconst SEED=${JSON.stringify(seed)};\n${validation}\n${worker}`);
-fs.copyFileSync('.openai/hosting.json','build/.openai/hosting.json');
-fs.cpSync('drizzle','build/.openai/drizzle',{recursive:true});
-console.log('Backend built with protected admin and migrations');
+const modules=['validation','auth','company','bot','inventory'].map(name=>fs.readFileSync(`backend/${name}.js`,'utf8').replace(/^import .*;\r?\n/gm,'').replaceAll('export ',''));
+const worker=fs.readFileSync('backend/worker.js','utf8').replace(/^import .*;\r?\n/gm,'');
+const source=JSON.parse(fs.readFileSync('backend/source-catalog.json','utf8'));
+fs.writeFileSync('build/server/index.js',`const ADMIN_ASSETS=${JSON.stringify(assets)};\nconst SOURCE_CATALOG=${JSON.stringify(source)};\n${modules.join('\n')}\n${worker}`);
+fs.copyFileSync('.openai/hosting.json','build/.openai/hosting.json');fs.cpSync('drizzle','build/.openai/drizzle',{recursive:true});
+console.log('Formula Worker built: company access, catalog, leads, photo storage');
