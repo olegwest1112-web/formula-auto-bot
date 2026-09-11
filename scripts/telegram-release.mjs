@@ -28,8 +28,8 @@ const menu = await telegram('getChatMenuButton');
 if (menu.web_app?.url !== appUrl) throw new Error('Menu URL verification failed');
 const text = 'FORMULA · АВТОСАЛОН, НОВОВОЛИНСЬК\n\nОновлений каталог: автомобілі з фото та характеристиками, фільтри, обране і порівняння до трьох авто.\n\nПерегляд, підбір, обмін та консультація щодо фінансування — залишайте заявку просто в Mini App.\n\nЩоб відкрити: перейдіть до бота, натисніть «Почати», потім «Каталог авто» біля поля повідомлення.\n\nТестовий запуск: заявки зберігаються та надходять призначеному тестовому менеджеру.';
 const markup = { inline_keyboard: [
-  [{ text: '🚘 Відкрити бота → Каталог авто', url: `https://t.me/${bot.username}` }],
-  [{ text: '🌐 Переглянути каталог у браузері', url: appUrl }],
+  [{ text: 'Відкрити каталог у Telegram', url: `https://t.me/${bot.username}` }],
+  [{ text: 'Переглянути каталог у браузері', url: appUrl }],
 ] };
 let messageId = process.env.TELEGRAM_POST_ID;
 if (messageId) {
