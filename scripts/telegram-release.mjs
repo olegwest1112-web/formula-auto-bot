@@ -26,9 +26,13 @@ if (!membership.can_post_messages) throw new Error('Bot needs the Post messages 
 await telegram('setChatMenuButton', { menu_button: { type: 'web_app', text: 'Каталог авто', web_app: { url: appUrl } } });
 const menu = await telegram('getChatMenuButton');
 if (menu.web_app?.url !== appUrl) throw new Error('Menu URL verification failed');
-const text = 'FORMULA · АВТОСАЛОН, НОВОВОЛИНСЬК\n\nОновлений каталог: автомобілі з фото та характеристиками, фільтри, обране і порівняння до трьох авто.\n\nПерегляд, підбір, обмін та консультація щодо фінансування — залишайте заявку просто в Mini App.\n\nЩоб відкрити: перейдіть до бота, натисніть «Почати», потім «Каталог авто» біля поля повідомлення.\n\nТестовий запуск: заявки зберігаються та надходять призначеному тестовому менеджеру.';
+const miniAppUrl = `https://t.me/${bot.username}${bot.has_main_web_app ? '?startapp=channel' : ''}`;
+const launchInstruction = bot.has_main_web_app
+  ? 'Натисніть «Каталог авто» під цим дописом — каталог відкриється просто в Telegram.'
+  : 'Щоб відкрити: перейдіть до бота, натисніть «Почати», потім «Каталог авто» біля поля повідомлення.';
+const text = `FORMULA · АВТОСАЛОН, НОВОВОЛИНСЬК\n\nОновлений каталог: автомобілі з фото та характеристиками, фільтри, обране і порівняння до трьох авто.\n\nПерегляд, підбір, обмін та консультація щодо фінансування — залишайте заявку просто в Mini App.\n\n${launchInstruction}\n\nТестовий запуск: заявки зберігаються та надходять призначеному тестовому менеджеру.`;
 const markup = { inline_keyboard: [
-  [{ text: 'Відкрити каталог у Telegram', url: `https://t.me/${bot.username}` }],
+  [{ text: 'Каталог авто', url: miniAppUrl }],
   [{ text: 'Переглянути каталог у браузері', url: appUrl }],
 ] };
 let messageId = process.env.TELEGRAM_POST_ID;
