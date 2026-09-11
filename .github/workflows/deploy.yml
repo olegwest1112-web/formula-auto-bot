@@ -1,0 +1,55 @@
+name: Deploy Formula Mini App
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish_channel_post:
+        description: 'Create the initial test-channel post (once only)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: formula-pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      app_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check dist/app.js && node scripts/check.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+  telegram:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Configure Telegram and update channel post
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          APP_URL: ${{ needs.deploy.outputs.app_url }}
+          TELEGRAM_POST_ID: ${{ vars.TELEGRAM_POST_ID }}
+          PUBLISH_CHANNEL_POST: ${{ inputs.publish_channel_post && 'true' || 'false' }}
+        run: node scripts/telegram-release.mjs
