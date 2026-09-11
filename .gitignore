@@ -1,7 +1,6 @@
-.env
-.env.*
-!.env.example
-node_modules/
 work/
 outputs/
 .sites-runtime/
+.env
+node_modules/
+build/

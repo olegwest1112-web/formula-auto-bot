@@ -29,8 +29,8 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      - run: node --check dist/app.js && node scripts/check.mjs
+          node-version: '24'
+      - run: node --check dist/app.js && node --check admin/app.js && node scripts/check.mjs && node --test tests/*.test.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
       - name: Configure Telegram and update channel post
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
